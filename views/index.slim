@@ -1,0 +1,21 @@
+doctype html
+html
+  head
+    title pick an engine
+  body
+    #content
+      h1 create a sploit
+      ul
+        - @@engines.each do |engine|
+          li
+            a href="#{engine}" = engine
+    #existing
+      h1 list sploits
+      table
+        - @posts.each do |post|
+          tr
+            td = post
+            - @@engines.each do |engine|
+              td
+                a href="#{engine}/#{post}" view in #{engine}
+

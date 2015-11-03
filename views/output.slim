@@ -1,0 +1,13 @@
+doctype html
+html
+  head
+    title output
+  body
+    #content
+      == @bbcode_output
+    ul
+      li
+        a href="/#{@engine}" try again
+      - @other_engines.each do |engine|
+        li
+          a href="/#{engine}/#{@slug}" view in #{engine}

@@ -1,0 +1,2 @@
+[img]http://foo.com/fake.png [img] onerror=javascript:alert(String.fromCharCode(88,83,83)) [/img] [/img]
+

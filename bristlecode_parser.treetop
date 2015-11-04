@@ -1,0 +1,32 @@
+grammar Bristlecode
+  rule root
+    (tag / text)+ <RootNode>
+  end
+
+  rule text
+    (!tag .)+ <TextNode>
+  end
+
+  rule tag
+    (bold) <TagNode>
+  end
+
+  ##############################
+  # bold
+  ##############################
+
+  rule bold
+    bold_open
+    ((!bold_close .)+ <TextNode>)
+    bold_close
+    <BoldNode>
+  end
+
+  rule bold_open
+    '[b]' <BoldOpenNode> / '[B]' <BoldOpenNode>
+  end
+
+  rule bold_close
+    '[/b]' <BoldCloseNode> / '[/B]' <BoldCloseNode>
+  end
+end

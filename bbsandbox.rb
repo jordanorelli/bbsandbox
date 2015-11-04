@@ -3,8 +3,9 @@ require 'slim'
 require 'digest/sha1'
 require 'bb-ruby'
 require 'ruby-bbcode'
+require './bristle.rb'
 
-@@engines = ['bb-ruby', 'ruby-bbcode', 'raw']
+@@engines = ['bb-ruby', 'ruby-bbcode', 'raw', 'bristle']
 
 get '/' do
   @posts = list_posts
@@ -35,6 +36,8 @@ def exec_bbcode(engine, body)
     BBRuby.to_html body
   when "ruby-bbcode"
     RubyBBCode.to_html body
+  when "bristle"
+    Bristle.parse body
   when "raw"
     body
   else

@@ -1,6 +1,6 @@
 grammar Bristlecode
   rule root
-    (tag / text)+ <RootNode>
+    (tag / text)* <RootNode>
   end
 
   rule text
@@ -8,7 +8,7 @@ grammar Bristlecode
   end
 
   rule tag
-    (bold) <TagNode>
+    bold / italic
   end
 
   ##############################
@@ -28,5 +28,24 @@ grammar Bristlecode
 
   rule bold_close
     '[/b]' <BoldCloseNode> / '[/B]' <BoldCloseNode>
+  end
+
+  ##############################
+  # italic
+  ##############################
+
+  rule italic
+    italic_open
+    ((!italic_close .)+ <TextNode>)
+    italic_close
+    <ItalicNode>
+  end
+
+  rule italic_open
+    '[i]' <ItalicOpenNode> / '[I]' <ItalicOpenNode>
+  end
+
+  rule italic_close
+    '[/i]' <ItalicCloseNode> / '[/I]' <ItalicCloseNode>
   end
 end

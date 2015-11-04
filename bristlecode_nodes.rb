@@ -15,12 +15,21 @@ module Bristlecode
     end
 
     def inspect(indent="")
-      "#{indent}TextNode: #{text_value}"
+      s = "#{indent}TextNode:\n"
+      text_value.each_line{|line| s += "#{indent}  #{line}"}
+      s
     end
 
     def to_html
       text_value 
     end
+  end
+
+  ##############################
+  # bold
+  ##############################
+
+  class BoldNode < Treetop::Runtime::SyntaxNode
   end
 
   class BoldOpenNode < Treetop::Runtime::SyntaxNode
@@ -29,7 +38,17 @@ module Bristlecode
   class BoldCloseNode < Treetop::Runtime::SyntaxNode
   end
 
-  class BoldNode < Treetop::Runtime::SyntaxNode
+  ##############################
+  # italic
+  ##############################
+
+  class ItalicNode < Treetop::Runtime::SyntaxNode
+  end
+
+  class ItalicOpenNode < Treetop::Runtime::SyntaxNode
+  end
+
+  class ItalicCloseNode < Treetop::Runtime::SyntaxNode
   end
 
   class TagNode < Treetop::Runtime::SyntaxNode

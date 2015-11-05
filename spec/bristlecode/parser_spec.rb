@@ -17,6 +17,14 @@ module Bristlecode
       expect(to_html("      \t   \n    \n     \t")).to eq("")
     end
 
+    it 'handles special chars' do
+      expect(to_html('&')).to eq('&amp;')
+      expect(to_html('>')).to eq('&gt;')
+      expect(to_html('<')).to eq('&lt;')
+      expect(to_html("'")).to eq('&apos;')
+      expect(to_html('"')).to eq('&quot;')
+    end
+
     it 'handles plain text just fine' do
       expect(to_html("plaintext")).to eq("plaintext")
     end
@@ -59,6 +67,12 @@ module Bristlecode
     it 'passes simple url contents opaquely' do
       input = '[url]x[b]y[/b]z[/url]'
       output = '<a href="x[b]y[/b]z">x[b]y[/b]z</a>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'handles urls with titles' do
+      input = '[url=google.com]the google[/url]'
+      output = '<a href="google.com">the google</a>'
       expect(to_html(input)).to eq(output)
     end
 
@@ -157,6 +171,11 @@ module Bristlecode
     describe '#url' do
       it 'can parse correct urls' do
         expect(parser.url).to parse('[url]google.com[/url]')
+        expect(parser.url).to parse('[url=google.com]google[/url]')
+      end
+
+      it 'can parse title subtrees' do
+        expect(parser.url).to parse('[url=google.com]this is [b]google[/b] yo[/url]')
       end
 
       it "doesn't die on elements nested in simple urls" do

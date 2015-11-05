@@ -27,12 +27,21 @@ module Bristlecode
     rule(:url_close) { str('[/url]') | eof }
     rule(:simple_href) { (url_close.absent? >> any).repeat }
     rule(:simple_url) { url_open >> simple_href.as(:href) >> url_close }
-    rule(:url) { simple_url.as(:url) }
+    rule(:url_title_open) { str('[url=') }
+    rule(:url_title_href) { (match(']').absent? >> any).repeat }
+    rule(:url_with_title) {
+      url_title_open >>
+      url_title_href.as(:href) >>
+      match(']') >>
+      children.as(:title) >>
+      url_close
+    }
+    rule(:url) { (simple_url | url_with_title).as(:url) }
 
     rule(:eof) { any.absent? }
     rule(:tag) { bold | italic | url | linebreak }
     rule(:elem) { text.as(:text) | tag }
-    rule(:tag_open) { bold_open | italic_open | url_open }
+    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open }
     rule(:tag_close) { bold_close | italic_close | url_close }
     rule(:tag_delim) { tag_open | tag_close | linebreak }
 
@@ -70,6 +79,15 @@ module Bristlecode
 
     def initialize(text)
       self.text = text.to_str.strip
+      clean
+    end
+
+    def clean
+      text.gsub!('&', '&amp;')
+      text.gsub!('<', '&lt;')
+      text.gsub!('>', '&gt;')
+      text.gsub!('"', '&quot;')
+      text.gsub!("'", '&apos;')
     end
 
     def to_html
@@ -80,16 +98,12 @@ module Bristlecode
   class Bold
     attr_accessor :children
 
-    def initialize(children)    
-      self.children = children
+    def initialize(children)
+      self.children = Doc.new(children)
     end
 
     def to_html
-      s = StringIO.new
-      s << "<b>"
-      children.each{|child| s << child.to_html }
-      s << "</b>"
-      s.string
+      "<b>#{children.to_html}</b>"
     end
   end
 
@@ -97,15 +111,11 @@ module Bristlecode
     attr_accessor :children
 
     def initialize(children)
-      self.children = children
+      self.children = Doc.new(children)
     end
 
     def to_html
-      s = StringIO.new
-      s << "<i>"
-      children.each{|child| s << child.to_html }
-      s << "</i>"
-      s.string
+      "<i>#{children.to_html}</i>"
     end
   end
 
@@ -114,11 +124,15 @@ module Bristlecode
 
     def initialize(args)
       self.href = args[:href].to_str.strip
-      self.title = args[:title] || href
+      if args.has_key? :title
+        self.title = Doc.new(args[:title])
+      else
+        self.title = Text.new(href)
+      end
     end
 
     def to_html
-      "<a href=\"#{href}\">#{title}</a>"
+      "<a href=\"#{href}\">#{title.to_html}</a>"
     end
   end
 

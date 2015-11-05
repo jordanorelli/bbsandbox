@@ -45,6 +45,22 @@ module Bristlecode
       expect(to_html("[b]bold")).to eq("<b>bold</b>")
       expect(to_html("[i]italic")).to eq("<i>italic</i>")
     end
+
+    it 'can render simple links' do
+      input = '[url]example.com[/url]'
+      output = '<a href="example.com">example.com</a>'
+      expect(to_html(input)).to eq(output)
+
+      input = '[url]    example.com    [/url]'
+      output = '<a href="example.com">example.com</a>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'passes simple url contents opaquely' do
+      input = '[url]x[b]y[/b]z[/url]'
+      output = '<a href="x[b]y[/b]z">x[b]y[/b]z</a>'
+      expect(to_html(input)).to eq(output)
+    end
   end
 
   describe Parser do
@@ -131,6 +147,20 @@ module Bristlecode
 
       it 'fails nonsense tag' do
         expect(parser.italic).not_to parse('[italic]fake content[/italic]')
+      end
+    end
+
+    describe '#url' do
+      it 'can parse correct urls' do
+        expect(parser.url).to parse('[url]google.com[/url]')
+      end
+
+      it "doesn't die on elements nested in simple urls" do
+        expect(parser.url).to parse('[url]goog[b]le.c[/b]om[/url]')
+      end
+
+      it 'fails nested [url] tags' do
+        expect(parser.url).not_to parse('[url]x[url]y[/url]z[/url]')
       end
     end
   end

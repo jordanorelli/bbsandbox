@@ -9,6 +9,15 @@ module Bristlecode
     tree.to_html
   end
 
+  def Bristlecode.clean(text)
+    text.gsub!('&', '&amp;')
+    text.gsub!('<', '&lt;')
+    text.gsub!('>', '&gt;')
+    text.gsub!('"', '&quot;')
+    text.gsub!("'", '&#x27;')
+    text.gsub!('/', '&#x2F;')
+  end
+
   class Parser < Parslet::Parser
     rule(:space) { match('\s').repeat(1) }
     rule(:space?) { space.maybe }
@@ -79,15 +88,7 @@ module Bristlecode
 
     def initialize(text)
       self.text = text.to_str.strip
-      clean
-    end
-
-    def clean
-      text.gsub!('&', '&amp;')
-      text.gsub!('<', '&lt;')
-      text.gsub!('>', '&gt;')
-      text.gsub!('"', '&quot;')
-      text.gsub!("'", '&apos;')
+      Bristlecode.clean(self.text)
     end
 
     def to_html

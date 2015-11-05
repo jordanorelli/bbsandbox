@@ -21,8 +21,9 @@ module Bristlecode
       expect(to_html('&')).to eq('&amp;')
       expect(to_html('>')).to eq('&gt;')
       expect(to_html('<')).to eq('&lt;')
-      expect(to_html("'")).to eq('&apos;')
+      expect(to_html("'")).to eq('&#x27;')
       expect(to_html('"')).to eq('&quot;')
+      expect(to_html('/')).to eq('&#x2F;')
     end
 
     it 'handles plain text just fine' do
@@ -66,7 +67,7 @@ module Bristlecode
 
     it 'passes simple url contents opaquely' do
       input = '[url]x[b]y[/b]z[/url]'
-      output = '<a href="x[b]y[/b]z">x[b]y[/b]z</a>'
+      output = '<a href="x[b]y[/b]z">x[b]y[&#x2F;b]z</a>'
       expect(to_html(input)).to eq(output)
     end
 

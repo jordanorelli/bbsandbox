@@ -15,11 +15,11 @@ module Bristlecode
 
     rule(:bold_open) { str('[b]') | str('[B]') }
     rule(:bold_close) { str('[/b]') | str('[/B]') | eof }
-    rule(:bold) { bold_open >> children.as(:bold) >> bold_close }
+    rule(:bold) { bold_open >> children.as(:bold) >> bold_close >> space? }
 
     rule(:italic_open) { str('[i]') | str('[I]') }
     rule(:italic_close) { str('[/i]') | str('[/I]') | eof }
-    rule(:italic) { italic_open >> children.as(:italic) >> italic_close }
+    rule(:italic) { italic_open >> children.as(:italic) >> italic_close >> space? }
 
     rule(:eof) { any.absent? }
     rule(:tag) { bold | italic }
@@ -29,8 +29,8 @@ module Bristlecode
     rule(:tag_delim) { tag_open | tag_close }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1).as(:text) }
-    rule(:children) { space? >> elem.repeat }
-    rule(:doc) { space? >> elem.repeat.as(:doc) }
+    rule(:children) { space? >> elem.repeat >> space? }
+    rule(:doc) { space? >> elem.repeat.as(:doc) >> space? }
     root(:doc)
   end
 
@@ -55,7 +55,7 @@ module Bristlecode
 
   class Text
     def initialize(text)
-      @text = text
+      @text = text.to_str.strip
     end
 
     def to_html

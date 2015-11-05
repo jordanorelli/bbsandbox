@@ -2,6 +2,51 @@ require 'parslet/rig/rspec'
 require_relative '../../bristlecode.rb'
 
 module Bristlecode
+
+  describe '.to_html' do
+
+    def to_html(text)
+      Bristlecode.to_html(text)
+    end
+
+    it 'leaves an empty string unchanged' do
+      expect(to_html("")).to eq("")
+    end
+
+    it 'handles empty documents' do
+      expect(to_html("      \t   \n    \n     \t")).to eq("")
+    end
+
+    it 'handles plain text just fine' do
+      expect(to_html("plaintext")).to eq("plaintext")
+    end
+
+    it 'can bold stuff' do
+      expect(to_html("[b]bold[/b]")).to eq("<b>bold</b>")
+    end
+
+    it 'can italic stuff' do
+      expect(to_html("[i]italic[/i]")).to eq("<i>italic</i>")
+    end
+
+    it 'can nest tags' do
+      doc = '[b] bold [i] italic [/i] bold [/b]'
+      expected = '<b>bold<i>italic</i>bold</b>'
+      out = to_html(doc)
+      expect(out).to eq(expected)
+
+      doc = '[i] italic [b] bold [/b] italic [/i]'
+      expected = '<i>italic<b>bold</b>italic</i>'
+      out = to_html(doc)
+      expect(out).to eq(expected)
+    end
+
+    it 'auto-closes tags at eof' do
+      expect(to_html("[b]bold")).to eq("<b>bold</b>")
+      expect(to_html("[i]italic")).to eq("<i>italic</i>")
+    end
+  end
+
   describe Parser do
     let(:parser) { Parser.new }
 

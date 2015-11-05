@@ -1,4 +1,5 @@
 require 'parslet'
+require 'sanitize'
 
 module Bristlecode
 
@@ -125,10 +126,17 @@ module Bristlecode
 
     def initialize(args)
       self.href = args[:href].to_str.strip
+      check_href
       if args.has_key? :title
         self.title = Doc.new(args[:title])
       else
         self.title = Text.new(href)
+      end
+    end
+
+    def check_href
+      unless href =~ /^(\/[^\/]|https?:\/\/)/
+        raise "href must start with /, http, or https"
       end
     end
 

@@ -56,24 +56,24 @@ module Bristlecode
     end
 
     it 'can render simple links' do
-      input = '[url]example.com[/url]'
-      output = '<a href="example.com">example.com</a>'
+      input = '[url]http://example.com[/url]'
+      output = '<a href="http://example.com">http:&#x2F;&#x2F;example.com</a>'
       expect(to_html(input)).to eq(output)
 
-      input = '[url]    example.com    [/url]'
-      output = '<a href="example.com">example.com</a>'
+      input = '[url]    http://example.com    [/url]'
+      output = '<a href="http://example.com">http:&#x2F;&#x2F;example.com</a>'
       expect(to_html(input)).to eq(output)
     end
 
     it 'passes simple url contents opaquely' do
-      input = '[url]x[b]y[/b]z[/url]'
-      output = '<a href="x[b]y[/b]z">x[b]y[&#x2F;b]z</a>'
+      input = '[url]http://x[b]y[/b]z[/url]'
+      output = '<a href="http://x[b]y[/b]z">http:&#x2F;&#x2F;x[b]y[&#x2F;b]z</a>'
       expect(to_html(input)).to eq(output)
     end
 
     it 'handles urls with titles' do
-      input = '[url=google.com]the google[/url]'
-      output = '<a href="google.com">the google</a>'
+      input = '[url=http://google.com]the google[/url]'
+      output = '<a href="http://google.com">the google</a>'
       expect(to_html(input)).to eq(output)
     end
 

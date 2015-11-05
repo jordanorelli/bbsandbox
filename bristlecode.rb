@@ -3,11 +3,25 @@ require 'sanitize'
 
 module Bristlecode
 
+  Config = Sanitize::Config::freeze_config(
+    :elements => %w[b em i strong u a strike br],
+    :attributes => {
+      'a' => ['href']
+    },
+    :add_attributes => {
+      'a' => {'rel' => 'nofollow'}
+    },
+    :protocols => {
+      'a' => {'href' => ['http', 'https', :relative]}
+    }
+  )
+
   def Bristlecode.to_html(text)
     parser = Bristlecode::Parser.new
     parse_tree = parser.parse(text)
     tree = Bristlecode::Transform.new.apply(parse_tree)
-    tree.to_html
+    html = tree.to_html
+    Sanitize.fragment(html, Bristlecode::Config)
   end
 
   def Bristlecode.clean(text)

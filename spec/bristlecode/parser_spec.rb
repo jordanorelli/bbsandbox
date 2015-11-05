@@ -21,9 +21,6 @@ module Bristlecode
       expect(to_html('&')).to eq('&amp;')
       expect(to_html('>')).to eq('&gt;')
       expect(to_html('<')).to eq('&lt;')
-      expect(to_html("'")).to eq('&#x27;')
-      expect(to_html('"')).to eq('&quot;')
-      expect(to_html('/')).to eq('&#x2F;')
     end
 
     it 'handles plain text just fine' do
@@ -57,23 +54,23 @@ module Bristlecode
 
     it 'can render simple links' do
       input = '[url]http://example.com[/url]'
-      output = '<a href="http://example.com">http:&#x2F;&#x2F;example.com</a>'
+      output = '<a href="http://example.com" rel="nofollow">http://example.com</a>'
       expect(to_html(input)).to eq(output)
 
       input = '[url]    http://example.com    [/url]'
-      output = '<a href="http://example.com">http:&#x2F;&#x2F;example.com</a>'
+      output = '<a href="http://example.com" rel="nofollow">http://example.com</a>'
       expect(to_html(input)).to eq(output)
     end
 
     it 'passes simple url contents opaquely' do
       input = '[url]http://x[b]y[/b]z[/url]'
-      output = '<a href="http://x[b]y[/b]z">http:&#x2F;&#x2F;x[b]y[&#x2F;b]z</a>'
+      output = '<a href="http://x%5Bb%5Dy%5B/b%5Dz" rel="nofollow">http://x[b]y[/b]z</a>'
       expect(to_html(input)).to eq(output)
     end
 
     it 'handles urls with titles' do
       input = '[url=http://google.com]the google[/url]'
-      output = '<a href="http://google.com">the google</a>'
+      output = '<a href="http://google.com" rel="nofollow">the google</a>'
       expect(to_html(input)).to eq(output)
     end
 

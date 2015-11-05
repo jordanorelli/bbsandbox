@@ -61,6 +61,10 @@ module Bristlecode
       output = '<a href="x[b]y[/b]z">x[b]y[/b]z</a>'
       expect(to_html(input)).to eq(output)
     end
+
+    it 'renders a linebreak' do
+      expect(to_html('[br]')).to eq('<br>')
+    end
   end
 
   describe Parser do
@@ -161,6 +165,12 @@ module Bristlecode
 
       it 'fails nested [url] tags' do
         expect(parser.url).not_to parse('[url]x[url]y[/url]z[/url]')
+      end
+    end
+
+    describe '#linebreak' do
+      it 'does its thing' do
+        expect(parser.linebreak).to parse('[br]')
       end
     end
   end

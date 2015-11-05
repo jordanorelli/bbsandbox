@@ -17,6 +17,8 @@ module Bristlecode
     rule(:bold_close) { str('[/b]') | str('[/B]') | eof }
     rule(:bold) { bold_open >> children.as(:bold) >> bold_close }
 
+    rule(:linebreak) { str('[br]').as(:br) }
+
     rule(:italic_open) { str('[i]') | str('[I]') }
     rule(:italic_close) { str('[/i]') | str('[/I]') | eof }
     rule(:italic) { italic_open >> children.as(:italic) >> italic_close }
@@ -28,11 +30,11 @@ module Bristlecode
     rule(:url) { simple_url.as(:url) }
 
     rule(:eof) { any.absent? }
-    rule(:tag) { bold | italic | url }
+    rule(:tag) { bold | italic | url | linebreak }
     rule(:elem) { text.as(:text) | tag }
     rule(:tag_open) { bold_open | italic_open | url_open }
     rule(:tag_close) { bold_close | italic_close | url_close }
-    rule(:tag_delim) { tag_open | tag_close }
+    rule(:tag_delim) { tag_open | tag_close | linebreak }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1) }
     rule(:children) { space? >> elem.repeat }
@@ -46,6 +48,7 @@ module Bristlecode
     rule(text: simple(:text)) { Text.new(text) }
     rule(doc: subtree(:doc)) { Doc.new(doc) }
     rule(url: subtree(:url)) { Url.new(url) }
+    rule(br: simple(:br)) { Linebreak.new }
   end
 
   class Doc
@@ -116,6 +119,12 @@ module Bristlecode
 
     def to_html
       "<a href=\"#{href}\">#{title}</a>"
+    end
+  end
+
+  class Linebreak
+    def to_html
+      "<br>"
     end
   end
 end

@@ -29,7 +29,7 @@ module Bristlecode
     rule(:tag_delim) { tag_open | tag_close }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1).as(:text) }
-    rule(:children) { space? >> elem.repeat(1) }
+    rule(:children) { space? >> elem.repeat }
     rule(:doc) { space? >> elem.repeat.as(:doc) }
     root(:doc)
   end

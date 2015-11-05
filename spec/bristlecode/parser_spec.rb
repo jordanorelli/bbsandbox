@@ -10,6 +10,10 @@ module Bristlecode
         expect(parser).to parse('')
       end
 
+      it 'can parse whitespace' do
+        expect(parser).to parse('      ')
+      end
+
       it 'can parse plain text' do
         expect(parser).to parse('this is some plain text')
       end
@@ -21,6 +25,15 @@ module Bristlecode
         expect(parser.bold).to parse('[b]bolded contents here[/B]')
         expect(parser.bold).to parse('[B]bolded contents here[/b]')
         expect(parser.bold).to parse('[B]bolded contents here[/B]')
+      end
+
+      it 'can parse an empty bold tag' do
+        expect(parser.bold).to parse('[b][/b]')
+      end
+
+      it 'can parse nested tags' do
+        expect(parser.bold).to parse('[b] one [b] two [/b] three [/b]')
+        expect(parser.bold).to parse('[b] one [i] two [/i] three [/b]')
       end
 
       it 'can parse an unclosed tag' do
@@ -47,6 +60,15 @@ module Bristlecode
         expect(parser.italic).to parse('[i]italiced contents here[/I]')
         expect(parser.italic).to parse('[I]italiced contents here[/i]')
         expect(parser.italic).to parse('[I]italiced contents here[/I]')
+      end
+
+      it 'can parse an empty italic tag' do
+        expect(parser.italic).to parse('[i][/i]')
+      end
+
+      it 'can parse nested tags' do
+        expect(parser.italic).to parse('[i] one [i] two [/i] three [/i]')
+        expect(parser.italic).to parse('[i] one [b] two [/b] three [/i]')
       end
 
       it 'can parse an unclosed tag' do

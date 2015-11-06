@@ -62,16 +62,8 @@ module Bristlecode
 
     rule(:img_open) { str('[img]') }
     rule(:img_close) { str('[/img]') }
-    rule(:img) {
-      (
-        img_open >>
-        (
-          (str('http://') | str('https://')) >>
-          (img_close.absent? >> any).repeat(1)
-        ).as(:src) >>
-        img_close
-      ).as(:img)
-    }
+    rule(:img_src) { (img_close.absent? >> any).repeat(1) }
+    rule(:img) { (img_open >> img_src.as(:src) >> img_close).as(:img) }
 
     rule(:eof) { any.absent? }
     rule(:tag) { bold | italic | url | linebreak | img }
@@ -148,26 +140,37 @@ module Bristlecode
   end
 
   class Url
-    attr_accessor :href, :title
+    attr_accessor :href, :title, :bad_href, :title_supplied
 
     def initialize(args)
       self.href = args[:href].to_str.strip
-      check_href
       if args.has_key? :title
+        self.title_supplied = true
         self.title = Doc.new(args[:title])
       else
-        self.title = Text.new(href)
+        self.title_supplied = false
+        self.title = Text.new(self.href)
       end
     end
 
-    def check_href
-      unless href =~ /^(\/[^\/]|https?:\/\/)/
-        raise "href must start with /, http, or https"
-      end
+    def href_ok?
+      href =~ /^https?:/
     end
 
     def to_html
-      "<a href=\"#{href}\">#{title.to_html}</a>"
+      if href_ok?
+        "<a href=\"#{href}\">#{title.to_html}</a>"
+      else
+        reject
+      end
+    end
+
+    def reject
+      if title_supplied
+        "[url=#{href}]#{title.to_html}[/url]"
+      else
+        Text.new("[url]#{href}[/url]").to_html
+      end
     end
   end
 
@@ -184,8 +187,16 @@ module Bristlecode
       self.src = img[:src].to_str
     end
 
+    def src_ok?
+      src =~ /^(\/[^\/]|https?:\/\/)/
+    end
+
     def to_html
-      "<img src=\"#{src}\">"
+      if src_ok?
+        "<img src=\"#{src}\">"
+      else
+        Text.new("[img]#{src}[/img]").to_html
+      end
     end
   end
 end

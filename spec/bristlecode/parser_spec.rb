@@ -75,6 +75,14 @@ module Bristlecode
       expect(to_html(input)).to eq(output)
     end
 
+    it 'rejects bad url protocols' do
+      input = '[url=javascript:alert(1)]google.com[/url]'
+      expect { to_html(input) }.to raise_error
+
+      input = '[url=ftp://something.com/filez]google.com[/url]'
+      expect { to_html(input) }.to raise_error
+    end
+
     it 'allows subtrees in <a> tags' do
       input = '[url=http://google.com]this is [b]the[/b] google[/url]'
       output = '<a href="http://google.com" rel="nofollow">this is <b>the</b> google</a>'

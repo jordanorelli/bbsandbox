@@ -4,9 +4,10 @@ require 'sanitize'
 module Bristlecode
 
   Config = Sanitize::Config::freeze_config(
-    :elements => %w[b em i strong u a strike br],
+    :elements => %w[b em i strong u a strike br img],
     :attributes => {
-      'a' => ['href']
+      'a' => ['href'],
+      'img' => ['src'],
     },
     :add_attributes => {
       'a' => {'rel' => 'nofollow'}
@@ -34,9 +35,6 @@ module Bristlecode
   end
 
   class Parser < Parslet::Parser
-    rule(:space) { match('\s').repeat(1) }
-    rule(:space?) { space.maybe }
-
     rule(:bold_open) { str('[b]') | str('[B]') }
     rule(:bold_close) { str('[/b]') | str('[/B]') | eof }
     rule(:bold) { bold_open >> children.as(:bold) >> bold_close }
@@ -62,16 +60,29 @@ module Bristlecode
     }
     rule(:url) { (simple_url | url_with_title).as(:url) }
 
+    rule(:img_open) { str('[img]') }
+    rule(:img_close) { str('[/img]') }
+    rule(:img) {
+      (
+        img_open >>
+        (
+          (str('http://') | str('https://')) >>
+          (img_close.absent? >> any).repeat(1)
+        ).as(:src) >>
+        img_close
+      ).as(:img)
+    }
+
     rule(:eof) { any.absent? }
-    rule(:tag) { bold | italic | url | linebreak }
+    rule(:tag) { bold | italic | url | linebreak | img }
     rule(:elem) { text.as(:text) | tag }
-    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open }
-    rule(:tag_close) { bold_close | italic_close | url_close }
+    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open | img_open }
+    rule(:tag_close) { bold_close | italic_close | url_close | img_close }
     rule(:tag_delim) { tag_open | tag_close | linebreak }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1) }
-    rule(:children) { space? >> elem.repeat }
-    rule(:doc) { space? >> elem.repeat.as(:doc) }
+    rule(:children) { elem.repeat }
+    rule(:doc) { elem.repeat.as(:doc) }
     root(:doc)
   end
 
@@ -82,6 +93,7 @@ module Bristlecode
     rule(doc: subtree(:doc)) { Doc.new(doc) }
     rule(url: subtree(:url)) { Url.new(url) }
     rule(br: simple(:br)) { Linebreak.new }
+    rule(img: subtree(:img)) { Img.new(img) }
   end
 
   class Doc
@@ -102,7 +114,7 @@ module Bristlecode
     attr_accessor :text
 
     def initialize(text)
-      self.text = text.to_str.strip
+      self.text = text.to_str
       Bristlecode.clean(self.text)
     end
 
@@ -162,6 +174,18 @@ module Bristlecode
   class Linebreak
     def to_html
       "<br>"
+    end
+  end
+
+  class Img
+    attr_accessor :src
+
+    def initialize(img)
+      self.src = img[:src].to_str
+    end
+
+    def to_html
+      "<img src=\"#{src}\">"
     end
   end
 end

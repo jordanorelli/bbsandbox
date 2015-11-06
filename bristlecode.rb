@@ -19,6 +19,41 @@ module Bristlecode
     end
   end
 
+  class TweetFilter
+    def call(env)
+      node = env[:node]
+      node_name = env[:node_name]
+      return if env[:is_whitelisted] || !node.element?
+      case node_name
+      when 'script'
+        return script env
+      when 'blockquote'
+        return blockquote env
+      else
+        return
+      end
+    end
+
+    def script(env)
+      node = env[:node]
+      return unless node['src'] == "//platform.twitter.com/widgets.js"
+      Sanitize.node!(node, {
+        :elements => %w[script],
+        :attributes => {'script'  => %w[aync src charset]}
+      })
+      {:node_whitelist => [node]}
+    end
+
+    def blockquote(env)
+      node = env[:node]
+      Sanitize.node!(node, {
+        :elements => %w[blockquote a],
+        :attributes => {'blockquote'  => ['class'], 'a' => ['href']}
+      })
+      {:node_whitelist => [node]}
+    end
+  end
+
   Config = Sanitize::Config::freeze_config(
     :elements => %w[b em i strong u a strike br img],
     :attributes => {
@@ -31,7 +66,8 @@ module Bristlecode
     :protocols => {
       'a' => {'href' => ['http', 'https', :relative]}
     },
-    :transformers => [YoutubeFilter.new]
+    :transformers => [YoutubeFilter.new, TweetFilter.new],
+    :remove_contents => ['script']
   )
 
   def Bristlecode.to_html(text)
@@ -43,9 +79,12 @@ module Bristlecode
     rescue Parslet::ParseFailed => parse_error
       html = text
     end
-    Sanitize.fragment(html, Bristlecode::Config)
+    Bristlecode.sanitize_html(html)
   end
 
+  def Bristlecode.sanitize_html(html)
+    Sanitize.fragment(html, Bristlecode::Config)
+  end
 
   def Bristlecode.clean!(text)
     text.gsub!('&', '&amp;')
@@ -87,16 +126,23 @@ module Bristlecode
     rule(:youtube_url) { (youtube_close.absent? >> any).repeat(1) }
     rule(:youtube) { (youtube_open >> youtube_url.as(:src) >> youtube_close).as(:youtube) }
 
+    rule(:tweet_open) { str('[tweet]') }
+    rule(:tweet_close) { str('[/tweet]') }
+    rule(:tweet_url) { (tweet_close.absent? >> any).repeat(1) }
+    rule(:tweet) { (tweet_open >> tweet_url.as(:src) >> tweet_close).as(:tweet) }
+
     rule(:img_open) { str('[img]') }
     rule(:img_close) { str('[/img]') }
     rule(:img_src) { (img_close.absent? >> any).repeat(1) }
     rule(:img) { (img_open >> img_src.as(:src) >> img_close).as(:img) }
 
     rule(:eof) { any.absent? }
-    rule(:tag) { bold | italic | url | linebreak | img | youtube }
+    rule(:tag) { bold | italic | url | linebreak | img | youtube | tweet }
     rule(:elem) { text.as(:text) | tag }
-    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open | img_open | youtube_open }
-    rule(:tag_close) { bold_close | italic_close | url_close | img_close | youtube_close }
+    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open | img_open |
+      youtube_open | tweet_open }
+    rule(:tag_close) { bold_close | italic_close | url_close | img_close | youtube_close |
+      tweet_close }
     rule(:tag_delim) { tag_open | tag_close | linebreak }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1) }
@@ -114,6 +160,7 @@ module Bristlecode
     rule(br: simple(:br)) { Linebreak.new }
     rule(img: subtree(:img)) { Img.new(img) }
     rule(youtube: subtree(:youtube)) { Youtube.new(youtube) }
+    rule(tweet: subtree(:tweet)) { Tweet.new(tweet) }
   end
 
   class Doc
@@ -283,6 +330,39 @@ module Bristlecode
 
     def to_text
       text = "[youtube]#{raw_url}[/youtube]"
+      Bristlecode.clean!(text)
+      text
+    end
+  end
+
+  class Tweet
+    attr_accessor :raw_url, :tweet_url
+
+    def initialize(tweet)
+      self.raw_url = tweet[:src].to_str.strip
+      self.tweet_url = parse_url(self.raw_url)
+    end
+
+    def parse_url(url_in)
+      begin
+        uri = URI::parse(url_in)
+        return false unless ['http', 'https'].include? uri.scheme
+        return false unless uri.host == 'twitter.com'
+        return false unless uri.path =~ /^\/[^\/]+\/status\/\d+/
+        # strip querystring and fragment
+        return "#{uri.scheme}://#{uri.host}#{uri.path}"
+      rescue URI::InvalidURIError
+      end
+      return false
+    end
+
+    def to_html
+      return to_text unless tweet_url
+      "<blockquote class=\"twitter-tweet\"><a href=\"#{tweet_url}\"></a></blockquote><script async src=\"//platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>"
+    end
+
+    def to_text
+      text = "[tweet]#{raw_url}[/tweet]"
       Bristlecode.clean!(text)
       text
     end

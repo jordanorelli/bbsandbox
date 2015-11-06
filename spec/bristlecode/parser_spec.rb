@@ -9,6 +9,10 @@ module Bristlecode
       Bristlecode.to_html(text)
     end
 
+    def sanitize_html(text)
+      Bristlecode.sanitize_html(text)
+    end
+
     it 'leaves an empty string unchanged' do
       expect(to_html("")).to eq("")
     end
@@ -22,6 +26,17 @@ module Bristlecode
       expect(to_html('&')).to eq('&amp;')
       expect(to_html('>')).to eq('&gt;')
       expect(to_html('<')).to eq('&lt;')
+    end
+
+    it 'escapes tags' do
+      input = '<script>alert(1)</script>'
+      output = '&lt;script&gt;alert(1)&lt;/script&gt;'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'entirely removes unapproved script tags in sanitization' do
+      input = '<script>alert(1)</script>'
+      expect(sanitize_html(input)).to eq('')
     end
 
     it 'handles plain text just fine' do
@@ -147,6 +162,17 @@ module Bristlecode
 
     it "requires full url for youtube vids" do
       input = '[youtube]dQw4w9WgXcQ[/youtube]'
+      expect(to_html(input)).to eq(input)
+    end
+
+    it 'can render a tweet' do
+      input = '[tweet]https://twitter.com/jordanorelli/status/662654098156748800[/tweet]'
+      output = '<blockquote class="twitter-tweet"><a href="https://twitter.com/jordanorelli/status/662654098156748800" rel="nofollow"></a></blockquote><script src="//platform.twitter.com/widgets.js" charset="utf-8"></script>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'requres the full url for a tweet' do
+      input = '[tweet]662654098156748800[/tweet]'
       expect(to_html(input)).to eq(input)
     end
   end

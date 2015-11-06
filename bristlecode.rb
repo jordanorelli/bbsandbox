@@ -1,7 +1,23 @@
 require 'parslet'
 require 'sanitize'
+require 'uri'
 
 module Bristlecode
+
+  class YoutubeFilter
+    def call(env)
+      node = env[:node]
+      node_name = env[:node_name]
+      return if env[:is_whitelisted] || !node.element?
+      return unless node_name == 'iframe'
+      return unless node['src'] =~ %r|\A(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/|
+      Sanitize.node!(node, {
+        :elements => %w[iframe],
+        :attributes => {'iframe'  => %w[allowfullscreen frameborder height src width]}
+      })
+      {:node_whitelist => [node]}
+    end
+  end
 
   Config = Sanitize::Config::freeze_config(
     :elements => %w[b em i strong u a strike br img],
@@ -14,7 +30,8 @@ module Bristlecode
     },
     :protocols => {
       'a' => {'href' => ['http', 'https', :relative]}
-    }
+    },
+    :transformers => [YoutubeFilter.new]
   )
 
   def Bristlecode.to_html(text)
@@ -28,6 +45,7 @@ module Bristlecode
     end
     Sanitize.fragment(html, Bristlecode::Config)
   end
+
 
   def Bristlecode.clean!(text)
     text.gsub!('&', '&amp;')
@@ -64,16 +82,21 @@ module Bristlecode
     }
     rule(:url) { (simple_url | url_with_title).as(:url) }
 
+    rule(:youtube_open) { str('[youtube]') }
+    rule(:youtube_close) { str('[/youtube]') }
+    rule(:youtube_url) { (youtube_close.absent? >> any).repeat(1) }
+    rule(:youtube) { (youtube_open >> youtube_url.as(:src) >> youtube_close).as(:youtube) }
+
     rule(:img_open) { str('[img]') }
     rule(:img_close) { str('[/img]') }
     rule(:img_src) { (img_close.absent? >> any).repeat(1) }
     rule(:img) { (img_open >> img_src.as(:src) >> img_close).as(:img) }
 
     rule(:eof) { any.absent? }
-    rule(:tag) { bold | italic | url | linebreak | img }
+    rule(:tag) { bold | italic | url | linebreak | img | youtube }
     rule(:elem) { text.as(:text) | tag }
-    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open | img_open }
-    rule(:tag_close) { bold_close | italic_close | url_close | img_close }
+    rule(:tag_open) { bold_open | italic_open | url_open | url_title_open | img_open | youtube_open }
+    rule(:tag_close) { bold_close | italic_close | url_close | img_close | youtube_close }
     rule(:tag_delim) { tag_open | tag_close | linebreak }
 
     rule(:text) { (tag_delim.absent? >> any).repeat(1) }
@@ -90,6 +113,7 @@ module Bristlecode
     rule(url: subtree(:url)) { Url.new(url) }
     rule(br: simple(:br)) { Linebreak.new }
     rule(img: subtree(:img)) { Img.new(img) }
+    rule(youtube: subtree(:youtube)) { Youtube.new(youtube) }
   end
 
   class Doc
@@ -180,11 +204,8 @@ module Bristlecode
     end
 
     def to_html
-      if href_ok?
-        "<a href=\"#{href}\">#{title.to_html}</a>"
-      else
-        to_text
-      end
+      return to_text unless href_ok?
+      "<a href=\"#{href}\">#{title.to_html}</a>"
     end
 
     def to_text
@@ -220,17 +241,50 @@ module Bristlecode
     end
 
     def to_html
-      if src_ok?
-        "<img src=\"#{src}\">"
-      else
-        to_text
-      end
+      return to_text unless src_ok?
+      "<img src=\"#{src}\">"
     end
 
     def to_text
         text = "[img]#{src}[/img]"
         Bristlecode.clean!(text)
         text
+    end
+  end
+
+  class Youtube
+    attr_accessor :raw_url, :video_id
+
+    def initialize(args)
+      self.raw_url = args[:src].to_str.strip
+      self.video_id = parse_url
+    end
+
+    def parse_url
+      begin
+        uri = URI::parse(raw_url)
+        return false unless ['http', 'https'].include? uri.scheme
+        return false unless ['www.youtube.com', 'youtube.com', 'youtu.be'].include? uri.host
+        if uri.host == 'youtu.be'
+          return uri.path[1..-1]
+        else
+          URI::decode_www_form(uri.query).each{|key, value| return value if key == 'v'}
+        end
+      rescue URI::InvalidURIError
+      end
+
+      return false
+    end
+
+    def to_html
+      return to_text unless video_id
+      "<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/#{video_id}\" frameborder=\"0\" allowfullscreen></iframe>"
+    end
+
+    def to_text
+      text = "[youtube]#{raw_url}[/youtube]"
+      Bristlecode.clean!(text)
+      text
     end
   end
 end

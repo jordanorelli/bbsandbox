@@ -123,6 +123,32 @@ module Bristlecode
       input = '[url][url]x[/url][/url]'
       expect(to_html(input)).to eq(input)
     end
+
+    it 'can render a youtube video with a watch link' do
+      input = '[youtube]https://youtube.com/watch?v=uxpDa-c-4Mc[/youtube]'
+      output = '<iframe width="560" height="315" src="https://www.youtube.com/embed/uxpDa-c-4Mc" frameborder="0" allowfullscreen=""></iframe>'
+      expect(to_html(input)).to eq(output)
+
+      input = '[youtube]https://www.youtube.com/watch?v=uxpDa-c-4Mc[/youtube]'
+      output = '<iframe width="560" height="315" src="https://www.youtube.com/embed/uxpDa-c-4Mc" frameborder="0" allowfullscreen=""></iframe>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'can render a youtube video with a share link' do
+      input = '[youtube]https://youtu.be/uxpDa-c-4Mc[/youtube]'
+      output = '<iframe width="560" height="315" src="https://www.youtube.com/embed/uxpDa-c-4Mc" frameborder="0" allowfullscreen=""></iframe>'
+      expect(to_html(input)).to eq(output)
+    end
+
+    it 'refuses bad youtube urls' do
+      input = '[youtube]http://example.com/cats.gif[/youtube]'
+      expect(to_html(input)).to eq(input)
+    end
+
+    it "requires full url for youtube vids" do
+      input = '[youtube]dQw4w9WgXcQ[/youtube]'
+      expect(to_html(input)).to eq(input)
+    end
   end
 
   describe Parser do

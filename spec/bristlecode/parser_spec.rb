@@ -57,7 +57,9 @@ module Bristlecode
       input = '[url]http://example.com[/url]'
       output = '<a href="http://example.com" rel="nofollow">http://example.com</a>'
       expect(to_html(input)).to eq(output)
+    end
 
+    it 'trims whitespace around urls' do
       input = '[url]    http://example.com    [/url]'
       output = '<a href="http://example.com" rel="nofollow">http://example.com</a>'
       expect(to_html(input)).to eq(output)
@@ -111,6 +113,14 @@ module Bristlecode
       expect(to_html(input)).to eq(input)
 
       input = '[img]ftp://example.com/cat.gif[/img]'
+      expect(to_html(input)).to eq(input)
+    end
+
+    it 'returns the original text on parse failure' do
+      input = '[img]http://example.com/dog.gif[img]http://example.com/cat.gif[/img][/img]'
+      expect(to_html(input)).to eq(input)
+
+      input = '[url][url]x[/url][/url]'
       expect(to_html(input)).to eq(input)
     end
   end

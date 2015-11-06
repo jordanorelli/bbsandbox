@@ -18,14 +18,18 @@ module Bristlecode
   )
 
   def Bristlecode.to_html(text)
-    parser = Bristlecode::Parser.new
-    parse_tree = parser.parse(text)
-    tree = Bristlecode::Transform.new.apply(parse_tree)
-    html = tree.to_html
+    begin
+      parser = Bristlecode::Parser.new
+      parse_tree = parser.parse(text)
+      tree = Bristlecode::Transform.new.apply(parse_tree)
+      html = tree.to_html
+    rescue Parslet::ParseFailed => parse_error
+      html = text
+    end
     Sanitize.fragment(html, Bristlecode::Config)
   end
 
-  def Bristlecode.clean(text)
+  def Bristlecode.clean!(text)
     text.gsub!('&', '&amp;')
     text.gsub!('<', '&lt;')
     text.gsub!('>', '&gt;')
@@ -50,7 +54,7 @@ module Bristlecode
     rule(:simple_href) { (url_close.absent? >> any).repeat }
     rule(:simple_url) { url_open >> simple_href.as(:href) >> url_close }
     rule(:url_title_open) { str('[url=') }
-    rule(:url_title_href) { (match(']').absent? >> any).repeat }
+    rule(:url_title_href) { (match(']').absent? >> any).repeat(1) }
     rule(:url_with_title) {
       url_title_open >>
       url_title_href.as(:href) >>
@@ -100,6 +104,12 @@ module Bristlecode
       children.each{|child| s << child.to_html }
       s.string
     end
+
+    def to_text
+      s = StringIO.new
+      children.each{|child| s << child.to_text }
+      s.string
+    end
   end
 
   class Text
@@ -107,10 +117,14 @@ module Bristlecode
 
     def initialize(text)
       self.text = text.to_str
-      Bristlecode.clean(self.text)
+      Bristlecode.clean!(self.text)
     end
 
     def to_html
+      text
+    end
+
+    def to_text
       text
     end
   end
@@ -125,6 +139,10 @@ module Bristlecode
     def to_html
       "<b>#{children.to_html}</b>"
     end
+
+    def to_text
+      "[b]#{children.to_text}[/b]"
+    end
   end
 
   class Italic
@@ -136,6 +154,10 @@ module Bristlecode
 
     def to_html
       "<i>#{children.to_html}</i>"
+    end
+
+    def to_text
+      "[i]#{children.to_text}[/i]"
     end
   end
 
@@ -149,27 +171,29 @@ module Bristlecode
         self.title = Doc.new(args[:title])
       else
         self.title_supplied = false
-        self.title = Text.new(self.href)
+        self.title = Text.new(args[:href].to_str.strip)
       end
     end
 
     def href_ok?
-      href =~ /^https?:/
+      href =~ /^(\/|https?:\/\/)/
     end
 
     def to_html
       if href_ok?
         "<a href=\"#{href}\">#{title.to_html}</a>"
       else
-        reject
+        to_text
       end
     end
 
-    def reject
+    def to_text
       if title_supplied
-        "[url=#{href}]#{title.to_html}[/url]"
+        "[url=#{href}]#{title.to_text}[/url]"
       else
-        Text.new("[url]#{href}[/url]").to_html
+        text = "[url]#{href}[/url]"
+        Bristlecode.clean!(text)
+        text
       end
     end
   end
@@ -177,6 +201,10 @@ module Bristlecode
   class Linebreak
     def to_html
       "<br>"
+    end
+
+    def to_text
+      "[br]"
     end
   end
 
@@ -188,15 +216,21 @@ module Bristlecode
     end
 
     def src_ok?
-      src =~ /^(\/[^\/]|https?:\/\/)/
+      src =~ /^(\/|https?:\/\/)/
     end
 
     def to_html
       if src_ok?
         "<img src=\"#{src}\">"
       else
-        Text.new("[img]#{src}[/img]").to_html
+        to_text
       end
+    end
+
+    def to_text
+        text = "[img]#{src}[/img]"
+        Bristlecode.clean!(text)
+        text
     end
   end
 end
